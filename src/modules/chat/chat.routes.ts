@@ -4,7 +4,7 @@ import { chatController } from './chat.controller';
 
 const router = Router();
 
-router.get('/', authenticate, authorize('CANDIDATE', 'EMPLOYEE'), chatController.list);
+router.get('/', authenticate, authorize('CANDIDATE', 'EMPLOYEE', 'RECRUITER'), chatController.list);
 router.get('/:id/messages', authenticate, chatController.getMessages);
 router.post('/:id/messages', authenticate, chatController.sendMessage);
 
