@@ -7,7 +7,7 @@ export const validate = (schema: ZodSchema) => {
     if (!result.success) {
       return next(result.error);
     }
-    req.body = result.data;
+    req.body = (result as any).data;
     next();
   };
 };
@@ -18,7 +18,7 @@ export const validateQuery = (schema: ZodSchema) => {
     if (!result.success) {
       return next(result.error);
     }
-    req.query = result.data;
+    req.query = (result as any).data;
     next();
   };
 };

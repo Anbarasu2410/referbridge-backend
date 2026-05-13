@@ -78,9 +78,19 @@ export const jobService = {
 
     const job = await prisma.job.create({
       data: {
-        ...data,
-        employeeId: employee.id,
-        companyId: employee.companyId,
+        title: data.title,
+        description: data.description,
+        requiredSkills: data.requiredSkills,
+        experienceMin: data.experienceMin,
+        experienceMax: data.experienceMax,
+        location: data.location,
+        isRemote: data.isRemote,
+        salaryMin: data.salaryMin,
+        salaryMax: data.salaryMax,
+        referralBonus: data.referralBonus,
+        openings: data.openings,
+        employee: { connect: { id: employee.id } },
+        company: { connect: { id: employee.companyId } },
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
       },
       include: {
