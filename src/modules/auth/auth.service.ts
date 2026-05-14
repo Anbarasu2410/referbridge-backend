@@ -42,15 +42,39 @@ export const authService = {
         },
       });
 
-      // Create role-specific profile
-      // Company is required for Employee/Recruiter — handled in onboarding
       if (input.role === UserRole.CANDIDATE) {
         await tx.candidate.create({
-          data: {
-            userId: newUser.id,
-            fullName: input.fullName,
-          },
+          data: { userId: newUser.id, fullName: input.fullName },
         });
+      } else if (input.role === UserRole.EMPLOYEE || input.role === UserRole.RECRUITER) {
+        // Find or create company
+        const companyName = (input as any).companyName?.trim() || `${input.fullName}'s Company`;
+        let company = await tx.company.findFirst({
+          where: { name: { equals: companyName, mode: 'insensitive' } },
+        });
+        if (!company) {
+          company = await tx.company.create({ data: { name: companyName } });
+        }
+
+        if (input.role === UserRole.EMPLOYEE) {
+          await tx.employee.create({
+            data: {
+              userId: newUser.id,
+              fullName: input.fullName,
+              companyId: company.id,
+              designation: 'Employee',
+            },
+          });
+        } else {
+          await tx.recruiter.create({
+            data: {
+              userId: newUser.id,
+              fullName: input.fullName,
+              companyId: company.id,
+              designation: 'Recruiter',
+            },
+          });
+        }
       }
 
       return newUser;
