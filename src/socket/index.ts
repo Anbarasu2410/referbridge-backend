@@ -92,6 +92,41 @@ export function initSocket(httpServer: HttpServer) {
       });
     });
 
+    // ─── Direct Chat Events ────────────────────────
+    socket.on('direct-chat:join', (directChatId: string) => {
+      socket.join(`direct-chat:${directChatId}`);
+    });
+
+    socket.on('direct-chat:leave', (directChatId: string) => {
+      socket.leave(`direct-chat:${directChatId}`);
+    });
+
+    socket.on('direct-chat:message', async (data: { directChatId: string; content: string }) => {
+      try {
+        const message = await prisma.directMessage.create({
+          data: {
+            directChatId: data.directChatId,
+            senderId: userId,
+            content: data.content,
+          },
+          include: {
+            sender: { select: { id: true } },
+          },
+        });
+        io.to(`direct-chat:${data.directChatId}`).emit('direct-chat:message', message);
+      } catch (error) {
+        logger.error('Socket direct message error:', error);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    socket.on('direct-chat:typing', (data: { directChatId: string; isTyping: boolean }) => {
+      socket.to(`direct-chat:${data.directChatId}`).emit('direct-chat:typing', {
+        userId,
+        isTyping: data.isTyping,
+      });
+    });
+
     // ─── Disconnect ────────────────────────────────
     socket.on('disconnect', () => {
       onlineUsers.delete(userId);
