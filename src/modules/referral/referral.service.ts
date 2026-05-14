@@ -149,6 +149,7 @@ export const referralService = {
       const allowed = ['ACCEPTED', 'REJECTED', 'SUBMITTED'];
       if (!allowed.includes(data.status)) throw ForbiddenError('Employees can accept, reject, or submit referrals');
     } else if (role === 'RECRUITER') {
+      // Recruiters can manage the full hiring pipeline including accepting pending referrals
       const allowed = ['ACCEPTED', 'REJECTED', 'INTERVIEWING', 'OFFERED', 'JOINED'];
       if (!allowed.includes(data.status)) throw ForbiddenError('Recruiters can accept, reject, or update hiring status');
     }
