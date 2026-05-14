@@ -265,7 +265,7 @@ model ReferralRequest {
   @@map("referral_requests")
 }
 
-// CHAT (referral-based: candidate ↔ employee)
+// CHAT (referral-based: candidate <-> employee)
 
 model Chat {
   id                String   @id @default(cuid())
@@ -295,7 +295,7 @@ model Message {
   @@map("messages")
 }
 
-// DIRECT CHAT (recruiter ↔ candidate, not tied to a referral)
+// DIRECT CHAT (recruiter <-> candidate, not tied to a referral)
 
 model DirectChat {
   id          String   @id @default(cuid())
