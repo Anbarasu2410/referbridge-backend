@@ -24,7 +24,9 @@ export function initSocket(httpServer: HttpServer) {
       const token = socket.handshake.auth.token;
       if (!token) return next(new Error('Authentication required'));
 
-      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as {
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!, {
+        ignoreExpiration: true, // socket connections persist longer than token lifetime
+      }) as {
         id: string;
         role: string;
       };
