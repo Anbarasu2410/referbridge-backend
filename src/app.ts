@@ -14,6 +14,7 @@ import userRoutes from './modules/user/user.routes';
 import jobRoutes from './modules/job/job.routes';
 import referralRoutes from './modules/referral/referral.routes';
 import chatRoutes from './modules/chat/chat.routes';
+import directChatRoutes from './modules/chat/directChat.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 
 const app = express();
@@ -57,6 +58,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/referrals', referralRoutes);
 app.use('/api/v1/chats', chatRoutes);
+app.use('/api/v1/direct-chats', directChatRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 
 // ─────────────────────────────────────────

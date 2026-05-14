@@ -29,7 +29,7 @@ export const jobController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const job = await jobService.createJob(req.user!.id, req.body);
+      const job = await jobService.createJob(req.user!.id, req.body, req.user!.role);
       sendSuccess(res, job, 'Job posted successfully', 201);
     } catch (err) {
       next(err);

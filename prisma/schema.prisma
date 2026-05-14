@@ -69,7 +69,8 @@ model User {
   employee      Employee?
   recruiter     Recruiter?
   refreshTokens RefreshToken[]
-  sentMessages  Message[]      @relation("SentMessages")
+  sentMessages  Message[]        @relation("SentMessages")
+  sentDirectMessages DirectMessage[] @relation("SentDirectMessages")
   notifications Notification[]
 
   @@index([email])
@@ -114,6 +115,7 @@ model Candidate {
 
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   referralRequests ReferralRequest[]
+  directChats      DirectChat[]
 
   @@index([userId])
   @@index([skills])
@@ -167,6 +169,7 @@ model Recruiter {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   company Company @relation(fields: [companyId], references: [id])
   jobs    Job[]
+  directChats DirectChat[]
 
   @@index([userId])
   @@index([companyId])
@@ -200,7 +203,7 @@ model Company {
 
 model Job {
   id             String    @id @default(cuid())
-  employeeId     String
+  employeeId     String?
   recruiterId    String?
   companyId      String
   title          String
@@ -219,7 +222,7 @@ model Job {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  employee         Employee          @relation(fields: [employeeId], references: [id])
+  employee         Employee?         @relation(fields: [employeeId], references: [id])
   recruiter        Recruiter?        @relation(fields: [recruiterId], references: [id])
   company          Company           @relation(fields: [companyId], references: [id])
   referralRequests ReferralRequest[]
@@ -262,7 +265,7 @@ model ReferralRequest {
   @@map("referral_requests")
 }
 
-// CHAT
+// CHAT (referral-based: candidate ↔ employee)
 
 model Chat {
   id                String   @id @default(cuid())
@@ -290,6 +293,41 @@ model Message {
   @@index([senderId])
   @@index([createdAt])
   @@map("messages")
+}
+
+// DIRECT CHAT (recruiter ↔ candidate, not tied to a referral)
+
+model DirectChat {
+  id          String   @id @default(cuid())
+  recruiterId String
+  candidateId String
+  createdAt   DateTime @default(now())
+
+  recruiter Recruiter       @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidate Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  messages  DirectMessage[]
+
+  @@unique([recruiterId, candidateId])
+  @@index([recruiterId])
+  @@index([candidateId])
+  @@map("direct_chats")
+}
+
+model DirectMessage {
+  id           String   @id @default(cuid())
+  directChatId String
+  senderId     String
+  content      String
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  directChat DirectChat @relation(fields: [directChatId], references: [id], onDelete: Cascade)
+  sender     User       @relation("SentDirectMessages", fields: [senderId], references: [id])
+
+  @@index([directChatId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("direct_messages")
 }
 
 // NOTIFICATIONS

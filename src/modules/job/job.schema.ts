@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export const CreateJobSchema = z.object({
+const CreateJobBase = z.object({
   title: z.string().min(3).max(100),
   description: z.string().min(10),
   requiredSkills: z.array(z.string()).min(1),
   experienceMin: z.number().int().min(0).default(0),
   experienceMax: z.number().int().min(0).default(10),
-  location: z.string().min(2),
+  location: z.string().optional().default(''),
   isRemote: z.boolean().default(false),
   salaryMin: z.number().int().positive().optional(),
   salaryMax: z.number().int().positive().optional(),
@@ -15,7 +15,12 @@ export const CreateJobSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
-export const UpdateJobSchema = CreateJobSchema.partial().extend({
+export const CreateJobSchema = CreateJobBase.refine(
+  (data) => data.isRemote || (data.location && data.location.trim().length >= 2),
+  { message: 'Location is required for non-remote jobs', path: ['location'] }
+);
+
+export const UpdateJobSchema = CreateJobBase.partial().extend({
   status: z.enum(['ACTIVE', 'PAUSED', 'CLOSED']).optional(),
 });
 

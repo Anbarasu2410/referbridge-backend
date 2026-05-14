@@ -47,4 +47,17 @@ export const userController = {
       next(error);
     }
   },
+
+  async getAllCandidates(req: Request, res: Response, next: NextFunction) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string | undefined;
+      const skills = req.query.skills as string | undefined;
+      const result = await userService.getAllCandidates({ page, limit, search, skills });
+      sendPaginated(res, result.candidates, result.total, result.page, result.limit);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

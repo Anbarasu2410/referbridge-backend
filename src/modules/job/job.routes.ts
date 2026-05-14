@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/', authenticate, validateQuery(JobQuerySchema), jobController.list);
 router.get('/:id', authenticate, jobController.get);
-router.post('/', authenticate, authorize('EMPLOYEE'), validate(CreateJobSchema), jobController.create);
+router.post('/', authenticate, authorize('EMPLOYEE', 'RECRUITER'), validate(CreateJobSchema), jobController.create);
 router.patch('/:id', authenticate, authorize('EMPLOYEE'), validate(UpdateJobSchema), jobController.update);
 router.delete('/:id', authenticate, authorize('EMPLOYEE'), jobController.remove);
 

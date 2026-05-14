@@ -50,6 +50,7 @@ export const jobService = {
         include: {
           company: { select: { id: true, name: true, logoUrl: true, industry: true } },
           employee: { select: { id: true, fullName: true, designation: true } },
+          recruiter: { select: { id: true, fullName: true } },
           _count: { select: { referralRequests: true } },
         },
       }),
@@ -72,7 +73,37 @@ export const jobService = {
     return job;
   },
 
-  async createJob(userId: string, data: CreateJobInput) {
+  async createJob(userId: string, data: CreateJobInput, role: UserRole) {
+    if (role === 'RECRUITER') {
+      const recruiter = await prisma.recruiter.findUnique({ where: { userId } });
+      if (!recruiter) throw new AppError('Recruiter profile not found', 404);
+
+      // Optionally link to an employee at the company if one exists
+      const anyEmployee = await prisma.employee.findFirst({ where: { companyId: recruiter.companyId } });
+
+      const job = await prisma.job.create({
+        data: {
+          title: data.title,
+          description: data.description,
+          requiredSkills: data.requiredSkills,
+          experienceMin: data.experienceMin,
+          experienceMax: data.experienceMax,
+          location: data.location,
+          isRemote: data.isRemote,
+          salaryMin: data.salaryMin,
+          salaryMax: data.salaryMax,
+          referralBonus: data.referralBonus,
+          openings: data.openings,
+          ...(anyEmployee ? { employee: { connect: { id: anyEmployee.id } } } : {}),
+          recruiter: { connect: { id: recruiter.id } },
+          company: { connect: { id: recruiter.companyId } },
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+        },
+        include: { company: { select: { id: true, name: true, logoUrl: true } } },
+      });
+      return job;
+    }
+
     const employee = await prisma.employee.findUnique({ where: { userId } });
     if (!employee) throw new AppError('Employee profile not found', 404);
 
@@ -93,9 +124,7 @@ export const jobService = {
         company: { connect: { id: employee.companyId } },
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
       },
-      include: {
-        company: { select: { id: true, name: true, logoUrl: true } },
-      },
+      include: { company: { select: { id: true, name: true, logoUrl: true } } },
     });
     return job;
   },

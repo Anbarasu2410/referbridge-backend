@@ -88,4 +88,47 @@ export const userService = {
 
     return { activeJobs, totalCandidates, hired, interviewing };
   },
+
+  async getAllCandidates(query: { page: number; limit: number; search?: string; skills?: string }) {
+    const { page, limit, search, skills } = query;
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { headline: { contains: search, mode: 'insensitive' } },
+        { currentLocation: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (skills) {
+      const skillList = skills.split(',').map((s) => s.trim());
+      where.skills = { hasSome: skillList };
+    }
+
+    const [candidates, total] = await Promise.all([
+      prisma.candidate.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          headline: true,
+          skills: true,
+          experienceYears: true,
+          currentLocation: true,
+          isOpenToWork: true,
+          userId: true,
+          directChats: { select: { id: true, recruiterId: true } },
+        },
+      }),
+      prisma.candidate.count({ where }),
+    ]);
+
+    return { candidates, total, page, limit };
+  },
 };
