@@ -149,8 +149,8 @@ export const referralService = {
       const allowed = ['ACCEPTED', 'REJECTED', 'SUBMITTED'];
       if (!allowed.includes(data.status)) throw ForbiddenError('Employees can accept, reject, or submit referrals');
     } else if (role === 'RECRUITER') {
-      const allowed = ['INTERVIEWING', 'OFFERED', 'JOINED'];
-      if (!allowed.includes(data.status)) throw ForbiddenError('Recruiters can update interview/offer/joined status');
+      const allowed = ['ACCEPTED', 'REJECTED', 'INTERVIEWING', 'OFFERED', 'JOINED'];
+      if (!allowed.includes(data.status)) throw ForbiddenError('Recruiters can accept, reject, or update hiring status');
     }
 
     const updateData: any = {

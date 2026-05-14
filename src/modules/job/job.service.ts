@@ -5,18 +5,18 @@ import { UserRole } from '@prisma/client';
 
 export const jobService = {
   async listJobs(query: JobQueryInput, userId: string, role: UserRole) {
-    const { page, limit, search, location, isRemote, skills, status } = query;
+    const { page, limit, search, location, isRemote, skills, status, myJobs } = query;
     const skip = (page - 1) * limit;
-
     const where: any = {};
 
-    // Employees see only their own jobs; candidates/recruiters see all ACTIVE
-    if (role === 'EMPLOYEE') {
+    if (role === 'EMPLOYEE' && myJobs) {
+      // Employee viewing only their own postings
       const employee = await prisma.employee.findUnique({ where: { userId } });
       if (!employee) throw new AppError('Employee profile not found', 404);
       where.employeeId = employee.id;
       if (status) where.status = status;
     } else {
+      // Everyone else (and employee browsing all) sees ACTIVE jobs
       where.status = status || 'ACTIVE';
     }
 

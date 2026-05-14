@@ -30,8 +30,9 @@ export const JobQuerySchema = z.object({
   search: z.string().optional(),
   location: z.string().optional(),
   isRemote: z.coerce.boolean().optional(),
-  skills: z.string().optional(), // comma-separated
+  skills: z.string().optional(),
   status: z.enum(['ACTIVE', 'PAUSED', 'CLOSED']).optional(),
+  myJobs: z.coerce.boolean().optional(), // employee: show only their own jobs
 });
 
 export type CreateJobInput = z.infer<typeof CreateJobSchema>;
