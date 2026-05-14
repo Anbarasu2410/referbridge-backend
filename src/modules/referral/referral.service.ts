@@ -6,6 +6,7 @@ import { UserRole } from '@prisma/client';
 const referralInclude = {
   candidate: { select: { id: true, fullName: true, avatarUrl: true, headline: true, skills: true } },
   employee: { select: { id: true, fullName: true, avatarUrl: true, designation: true } },
+  recruiter: { select: { id: true, fullName: true } },
   job: { include: { company: { select: { id: true, name: true, logoUrl: true } } } },
   chat: { select: { id: true } },
   reward: { select: { id: true, amount: true, status: true } },
@@ -77,51 +78,28 @@ export const referralService = {
     });
     if (!job || job.status !== 'ACTIVE') throw new AppError('Job is not available', 400);
 
-    // Determine employeeId — use provided one, or fall back to job's employee
-    const employeeId = data.employeeId || job.employeeId;
-
-    if (!employeeId) {
-      // Recruiter-posted job with no employee — still allow referral, just no employee link
-      // Check for duplicate
-      const existing = await prisma.referralRequest.findUnique({
-        where: { candidateId_jobId: { candidateId: candidate.id, jobId: data.jobId } },
-      });
-      if (existing) throw ConflictError('You have already requested a referral for this job');
-
-      // Need a valid employeeId for the schema — find any employee at the company
-      const anyEmployee = await prisma.employee.findFirst({ where: { companyId: job.companyId } });
-      if (!anyEmployee) throw new AppError('No employee available to handle this referral. Contact the recruiter directly.', 400);
-
-      const referral = await prisma.$transaction(async (tx) => {
-        const ref = await tx.referralRequest.create({
-          data: {
-            candidateId: candidate.id,
-            employeeId: anyEmployee.id,
-            jobId: data.jobId,
-            coverNote: data.coverNote,
-          },
-          include: referralInclude,
-        });
-        await tx.chat.create({ data: { referralRequestId: ref.id } });
-        return ref;
-      });
-      return referral;
-    }
-
-    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employee || !employee.canRefer) throw new AppError('Employee cannot accept referrals', 400);
-
-    // One referral per candidate per job
+    // Check for duplicate
     const existing = await prisma.referralRequest.findUnique({
       where: { candidateId_jobId: { candidateId: candidate.id, jobId: data.jobId } },
     });
     if (existing) throw ConflictError('You have already requested a referral for this job');
 
+    // Determine if this is a recruiter-direct job or employee-referred job
+    const employeeId = data.employeeId || job.employeeId;
+    const recruiterId = job.recruiter?.id ?? null;
+    const isRecruiterJob = !employeeId && !!recruiterId;
+
+    if (!isRecruiterJob && employeeId) {
+      const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+      if (!employee || !employee.canRefer) throw new AppError('Employee cannot accept referrals', 400);
+    }
+
     const referral = await prisma.$transaction(async (tx) => {
       const ref = await tx.referralRequest.create({
         data: {
           candidateId: candidate.id,
-          employeeId,
+          employeeId: isRecruiterJob ? null : employeeId,
+          recruiterId: isRecruiterJob ? recruiterId : null,
           jobId: data.jobId,
           coverNote: data.coverNote,
         },
@@ -129,6 +107,10 @@ export const referralService = {
       });
       await tx.chat.create({ data: { referralRequestId: ref.id } });
       return ref;
+    });
+
+    return referral;
+  },      return ref;
     });
 
     return referral;
@@ -150,7 +132,7 @@ export const referralService = {
       if (!allowed.includes(data.status)) throw ForbiddenError('Employees can accept, reject, or submit referrals');
     } else if (role === 'RECRUITER') {
       // Recruiters can manage the full hiring pipeline including accepting pending referrals
-      const allowed = ['ACCEPTED', 'REJECTED', 'INTERVIEWING', 'OFFERED', 'JOINED'];
+      const allowed = ['ACCEPTED', 'REJECTED', 'SUBMITTED', 'INTERVIEWING', 'OFFERED', 'JOINED'];
       if (!allowed.includes(data.status)) throw ForbiddenError('Recruiters can accept, reject, or update hiring status');
     }
 

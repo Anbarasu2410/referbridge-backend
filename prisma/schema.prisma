@@ -170,6 +170,7 @@ model Recruiter {
   company Company @relation(fields: [companyId], references: [id])
   jobs    Job[]
   directChats DirectChat[]
+  referralRequests ReferralRequest[]
 
   @@index([userId])
   @@index([companyId])
@@ -240,8 +241,9 @@ model Job {
 model ReferralRequest {
   id              String         @id @default(cuid())
   candidateId     String
-  employeeId      String
+  employeeId      String?
   jobId           String
+  recruiterId     String?
   status          ReferralStatus @default(PENDING)
   coverNote       String?
   employeeNote    String?
@@ -251,15 +253,17 @@ model ReferralRequest {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  candidate Candidate @relation(fields: [candidateId], references: [id])
-  employee  Employee  @relation(fields: [employeeId], references: [id])
-  job       Job       @relation(fields: [jobId], references: [id])
+  candidate Candidate  @relation(fields: [candidateId], references: [id])
+  employee  Employee?  @relation(fields: [employeeId], references: [id])
+  recruiter Recruiter? @relation(fields: [recruiterId], references: [id])
+  job       Job        @relation(fields: [jobId], references: [id])
   chat      Chat?
   reward    Reward?
 
   @@unique([candidateId, jobId])
   @@index([candidateId])
   @@index([employeeId])
+  @@index([recruiterId])
   @@index([jobId])
   @@index([status])
   @@map("referral_requests")
