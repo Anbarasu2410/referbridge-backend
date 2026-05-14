@@ -37,41 +37,41 @@ export const userService = {
   },
 
   async updateRecruiterProfile(userId: string, data: any) {
-    // Find existing recruiter to get companyId
     const existing = await prisma.recruiter.findUnique({ where: { userId } });
 
+    // Resolve company — find existing or create new
+    const resolveCompany = async (companyName: string) => {
+      const found = await prisma.company.findFirst({
+        where: { name: { equals: companyName.trim(), mode: 'insensitive' } },
+      });
+      if (found) return found;
+      return prisma.company.create({ data: { name: companyName.trim() } });
+    };
+
     if (existing) {
-      // Update existing recruiter — never change companyId from this endpoint
-      const recruiter = await prisma.recruiter.update({
+      let companyId = existing.companyId;
+
+      // If a new company name is provided, switch to that company
+      if (data.companyName?.trim()) {
+        const company = await resolveCompany(data.companyName);
+        companyId = company.id;
+      }
+
+      return prisma.recruiter.update({
         where: { userId },
         data: {
           fullName: data.fullName || existing.fullName,
-          designation: data.designation,
-          linkedinUrl: data.linkedinUrl,
-          avatarUrl: data.avatarUrl,
+          designation: data.designation ?? existing.designation,
+          linkedinUrl: data.linkedinUrl ?? existing.linkedinUrl,
+          companyId,
         },
         include: { company: true },
       });
-
-      // If companyName provided, update the company name too
-      if (data.companyName?.trim()) {
-        await prisma.company.update({
-          where: { id: existing.companyId },
-          data: { name: data.companyName.trim() },
-        });
-      }
-
-      return prisma.recruiter.findUnique({ where: { userId }, include: { company: true } });
     }
 
-    // No recruiter row yet — create one with a company
+    // No recruiter row yet — create one
     const companyName = data.companyName?.trim() || `${data.fullName || 'My'}'s Company`;
-    let company = await prisma.company.findFirst({
-      where: { name: { equals: companyName, mode: 'insensitive' } },
-    });
-    if (!company) {
-      company = await prisma.company.create({ data: { name: companyName } });
-    }
+    const company = await resolveCompany(companyName);
 
     return prisma.recruiter.create({
       data: {
