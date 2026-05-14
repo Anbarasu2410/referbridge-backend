@@ -9,13 +9,13 @@ const SALT_ROUNDS = 12;
 
 function generateAccessToken(payload: { id: string; email: string; role: UserRole }) {
   return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, {
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as any,
   });
 }
 
 function generateRefreshToken(payload: { id: string }) {
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
   });
 }
 

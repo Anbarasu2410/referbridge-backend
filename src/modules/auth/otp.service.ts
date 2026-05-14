@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
-import { Resend } from 'resend';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Generate 6-digit OTP
