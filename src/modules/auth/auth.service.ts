@@ -48,7 +48,7 @@ export const authService = {
         });
       } else if (input.role === UserRole.EMPLOYEE || input.role === UserRole.RECRUITER) {
         // Find or create company
-        const companyName = (input as any).companyName?.trim() || `${input.fullName}'s Company`;
+        const companyName = input.companyName?.trim() || `${input.fullName}'s Company`;
         let company = await tx.company.findFirst({
           where: { name: { equals: companyName, mode: 'insensitive' } },
         });

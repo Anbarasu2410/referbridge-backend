@@ -11,6 +11,7 @@ export const RegisterSchema = z.object({
     .regex(/[0-9]/, 'Must contain a number'),
   role: z.nativeEnum(UserRole),
   fullName: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  companyName: z.string().min(2).max(100).optional(),
 });
 
 export const LoginSchema = z.object({
