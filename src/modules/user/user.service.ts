@@ -37,12 +37,52 @@ export const userService = {
   },
 
   async updateRecruiterProfile(userId: string, data: any) {
-    const recruiter = await prisma.recruiter.upsert({
-      where: { userId },
-      update: data,
-      create: { userId, fullName: data.fullName || '', companyId: data.companyId || '', ...data },
+    // Find existing recruiter to get companyId
+    const existing = await prisma.recruiter.findUnique({ where: { userId } });
+
+    if (existing) {
+      // Update existing recruiter — never change companyId from this endpoint
+      const recruiter = await prisma.recruiter.update({
+        where: { userId },
+        data: {
+          fullName: data.fullName || existing.fullName,
+          designation: data.designation,
+          linkedinUrl: data.linkedinUrl,
+          avatarUrl: data.avatarUrl,
+        },
+        include: { company: true },
+      });
+
+      // If companyName provided, update the company name too
+      if (data.companyName?.trim()) {
+        await prisma.company.update({
+          where: { id: existing.companyId },
+          data: { name: data.companyName.trim() },
+        });
+      }
+
+      return prisma.recruiter.findUnique({ where: { userId }, include: { company: true } });
+    }
+
+    // No recruiter row yet — create one with a company
+    const companyName = data.companyName?.trim() || `${data.fullName || 'My'}'s Company`;
+    let company = await prisma.company.findFirst({
+      where: { name: { equals: companyName, mode: 'insensitive' } },
     });
-    return recruiter;
+    if (!company) {
+      company = await prisma.company.create({ data: { name: companyName } });
+    }
+
+    return prisma.recruiter.create({
+      data: {
+        userId,
+        fullName: data.fullName || '',
+        companyId: company.id,
+        designation: data.designation || 'Recruiter',
+        linkedinUrl: data.linkedinUrl,
+      },
+      include: { company: true },
+    });
   },
 
   async getRecruiterPipeline(userId: string, query: { page: number; limit: number; status?: string }) {
