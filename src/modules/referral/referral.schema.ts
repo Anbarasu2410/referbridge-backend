@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const CreateReferralSchema = z.object({
   jobId: z.string().cuid(),
-  employeeId: z.string().cuid(),
+  employeeId: z.string().cuid().optional(),
   coverNote: z.string().max(1000).optional(),
 });
 

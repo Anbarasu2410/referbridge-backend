@@ -71,10 +71,44 @@ export const referralService = {
     const candidate = await prisma.candidate.findUnique({ where: { userId } });
     if (!candidate) throw new AppError('Candidate profile not found', 404);
 
-    const job = await prisma.job.findUnique({ where: { id: data.jobId } });
+    const job = await prisma.job.findUnique({
+      where: { id: data.jobId },
+      include: { recruiter: { select: { id: true } } },
+    });
     if (!job || job.status !== 'ACTIVE') throw new AppError('Job is not available', 400);
 
-    const employee = await prisma.employee.findUnique({ where: { id: data.employeeId } });
+    // Determine employeeId — use provided one, or fall back to job's employee
+    const employeeId = data.employeeId || job.employeeId;
+
+    if (!employeeId) {
+      // Recruiter-posted job with no employee — still allow referral, just no employee link
+      // Check for duplicate
+      const existing = await prisma.referralRequest.findUnique({
+        where: { candidateId_jobId: { candidateId: candidate.id, jobId: data.jobId } },
+      });
+      if (existing) throw ConflictError('You have already requested a referral for this job');
+
+      // Need a valid employeeId for the schema — find any employee at the company
+      const anyEmployee = await prisma.employee.findFirst({ where: { companyId: job.companyId } });
+      if (!anyEmployee) throw new AppError('No employee available to handle this referral. Contact the recruiter directly.', 400);
+
+      const referral = await prisma.$transaction(async (tx) => {
+        const ref = await tx.referralRequest.create({
+          data: {
+            candidateId: candidate.id,
+            employeeId: anyEmployee.id,
+            jobId: data.jobId,
+            coverNote: data.coverNote,
+          },
+          include: referralInclude,
+        });
+        await tx.chat.create({ data: { referralRequestId: ref.id } });
+        return ref;
+      });
+      return referral;
+    }
+
+    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee || !employee.canRefer) throw new AppError('Employee cannot accept referrals', 400);
 
     // One referral per candidate per job
@@ -87,16 +121,13 @@ export const referralService = {
       const ref = await tx.referralRequest.create({
         data: {
           candidateId: candidate.id,
-          employeeId: data.employeeId,
+          employeeId,
           jobId: data.jobId,
           coverNote: data.coverNote,
         },
         include: referralInclude,
       });
-
-      // Auto-create chat for this referral
       await tx.chat.create({ data: { referralRequestId: ref.id } });
-
       return ref;
     });
 
