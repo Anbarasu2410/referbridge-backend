@@ -110,10 +110,6 @@ export const referralService = {
     });
 
     return referral;
-  },      return ref;
-    });
-
-    return referral;
   },
 
   async updateStatus(referralId: string, userId: string, role: UserRole, data: UpdateReferralStatusInput) {
@@ -147,7 +143,7 @@ export const referralService = {
       updateData.joinedAt = new Date();
       // Unlock reward if referral bonus exists
       const job = await prisma.job.findUnique({ where: { id: referral.jobId } });
-      if (job?.referralBonus) {
+      if (job?.referralBonus && referral.employeeId) {
         await prisma.reward.upsert({
           where: { referralRequestId: referralId },
           update: {},
@@ -157,7 +153,6 @@ export const referralService = {
             amount: job.referralBonus,
           },
         });
-        // Increment employee successful referrals
         await prisma.employee.update({
           where: { id: referral.employeeId },
           data: { successfulReferrals: { increment: 1 } },
