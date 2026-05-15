@@ -15,8 +15,12 @@ export const jobService = {
       if (!employee) throw new AppError('Employee profile not found', 404);
       where.employeeId = employee.id;
       if (status) where.status = status;
+    } else if (role === 'EMPLOYEE') {
+      // Employee browsing all jobs — only show employee-posted jobs (referral-based), not recruiter-direct jobs
+      where.status = status || 'ACTIVE';
+      where.employeeId = { not: null }; // only jobs posted by employees
     } else {
-      // Everyone else (and employee browsing all) sees ACTIVE jobs
+      // Candidate sees all ACTIVE jobs (both employee and recruiter posted)
       where.status = status || 'ACTIVE';
     }
 
