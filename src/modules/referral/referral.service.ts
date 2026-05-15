@@ -27,7 +27,9 @@ export const referralService = {
     } else if (role === 'EMPLOYEE') {
       const employee = await prisma.employee.findUnique({ where: { userId } });
       if (!employee) throw new AppError('Employee profile not found', 404);
+      // Only show referrals where this employee is the actual referrer (not recruiter-direct jobs)
       where.employeeId = employee.id;
+      where.recruiterId = null; // exclude recruiter-direct referrals
     } else {
       // Recruiter sees all referrals for their company's jobs
       const recruiter = await prisma.recruiter.findUnique({ where: { userId } });
