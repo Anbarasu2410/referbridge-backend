@@ -15,10 +15,10 @@ export const chatService = {
       if (!employee) throw new AppError('Employee profile not found', 404);
       whereClause = { referralRequest: { employeeId: employee.id } };
     } else {
-      // RECRUITER: sees all chats for their company's jobs
+      // RECRUITER: only sees chats for referrals they directly manage (recruiterId on referral)
       const recruiter = await prisma.recruiter.findUnique({ where: { userId } });
       if (!recruiter) throw new AppError('Recruiter profile not found', 404);
-      whereClause = { referralRequest: { job: { companyId: recruiter.companyId } } };
+      whereClause = { referralRequest: { recruiterId: recruiter.id } };
     }
 
     const chats = await prisma.chat.findMany({
@@ -66,11 +66,12 @@ export const chatService = {
     if (!chat) throw NotFoundError('Chat');
 
     const { candidate, employee } = chat.referralRequest;
-    // Recruiters from the same company can also access chats
-    const isParticipant = candidate.userId === userId || employee.userId === userId;
+    // Only candidate and employee are participants in referral chats
+    const isParticipant = candidate.userId === userId || (employee && employee.userId === userId);
     if (!isParticipant) {
+      // Check if recruiter owns this referral directly
       const recruiter = await prisma.recruiter.findFirst({
-        where: { userId, company: { jobs: { some: { referralRequests: { some: { chat: { id: chatId } } } } } } },
+        where: { userId, referralRequests: { some: { chat: { id: chatId } } } },
       });
       if (!recruiter) throw ForbiddenError('You are not part of this chat');
     }
@@ -114,10 +115,10 @@ export const chatService = {
     if (!chat) throw NotFoundError('Chat');
 
     const { candidate, employee } = chat.referralRequest;
-    const isParticipant = candidate.userId === userId || employee.userId === userId;
+    const isParticipant = candidate.userId === userId || (employee && employee.userId === userId);
     if (!isParticipant) {
       const recruiter = await prisma.recruiter.findFirst({
-        where: { userId, company: { jobs: { some: { referralRequests: { some: { chat: { id: chatId } } } } } } },
+        where: { userId, referralRequests: { some: { chat: { id: chatId } } } },
       });
       if (!recruiter) throw ForbiddenError('You are not part of this chat');
     }
